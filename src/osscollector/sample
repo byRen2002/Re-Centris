@@ -1,0 +1,10 @@
+git clone https://github.com/redis/redis.git
+git clone https://github.com/torvalds/linux.git
+git clone https://github.com/git/git.git
+git clone https://github.com/openssl/openssl.git
+git clone https://github.com/tensorflow/tensorflow.git
+git clone https://github.com/electron/electron.git
+git clone https://github.com/microsoft/terminal.git
+git clone https://github.com/apple/swift.git
+git clone https://github.com/opencv/opencv.git
+git clone https://github.com/bitcoin/bitcoin.git
