@@ -1,7 +1,21 @@
 """
-预处理器。
-作者：		Seunghoon Woo (seunghoonwoo@korea.ac.kr)
-修改日期： 	2020年12月16日。
+预处理器 - 用于处理开源代码库的函数提取和分析
+
+该模块实现了以下主要功能:
+1. 提取仓库版本日期信息
+2. 消除冗余函数
+3. 保存元信息
+4. 代码分割
+
+主要类:
+- Cache: 缓存计算结果
+- ResourceManager: 管理文件句柄等资源
+- PerformanceMonitor: 监控处理性能
+- MemoryOptimizer: 优化内存使用
+
+作者: byRen2002
+修改日期: 2024年10月25日
+许可证: MIT License
 """
 
 import os
@@ -16,65 +30,264 @@ from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
 import logging
 import datetime
+import time
 
+# 缓存配置
+CACHE_SIZE = 1000  # 缓存大小限制
+CACHE_EXPIRE = 3600  # 缓存过期时间(秒)
 
+class Cache:
+    """
+    通用缓存类
+    
+    用于缓存计算结果,减少重复计算:
+    - TLSH哈希值缓存
+    - 文件内容缓存
+    - 函数解析结果缓存
+    """
+    
+    def __init__(self, max_size=CACHE_SIZE, expire=CACHE_EXPIRE):
+        self.cache = {}
+        self.max_size = max_size
+        self.expire = expire
+        self.access_times = {}
+        self._lock = multiprocessing.Lock()
+        
+    def get(self, key):
+        """获取缓存值"""
+        with self._lock:
+            if key not in self.cache:
+                return None
+                
+            access_time = self.access_times[key]
+            if time.time() - access_time > self.expire:
+                del self.cache[key]
+                del self.access_times[key]
+                return None
+                
+            self.access_times[key] = time.time()
+            return self.cache[key]
+            
+    def set(self, key, value):
+        """设置缓存值"""
+        with self._lock:
+            if len(self.cache) >= self.max_size:
+                sorted_keys = sorted(self.access_times.items(), 
+                                   key=lambda x: x[1])
+                oldest_key = sorted_keys[0][0]
+                del self.cache[oldest_key]
+                del self.access_times[oldest_key]
+                
+            self.cache[key] = value
+            self.access_times[key] = time.time()
+            
+    def clear(self):
+        """清空缓存"""
+        with self._lock:
+            self.cache.clear()
+            self.access_times.clear()
 
-"""全局变量"""
-currentPath		= "/home/rby/Project/project-file/dependency_analysis/centris"
-separator 		= "#@#"	
-sep_len			= len(separator)					
-# 暂时不要更改
+class ResourceManager:
+    """
+    资源管理类
+    
+    管理程序运行过程中的各种资源:
+    - 文件句柄
+    - 进程池
+    - 内存使用
+    """
+    
+    def __init__(self):
+        self.file_handles = {}
+        self.process_pools = {}
+        self._lock = multiprocessing.Lock()
+        
+    def get_file_handle(self, path, mode='r'):
+        """获取文件句柄"""
+        with self._lock:
+            key = (path, mode)
+            if key not in self.file_handles:
+                self.file_handles[key] = open(path, mode)
+            return self.file_handles[key]
+            
+    def get_process_pool(self, name, max_workers=None):
+        """获取进程池"""
+        with self._lock:
+            if name not in self.process_pools:
+                if max_workers is None:
+                    max_workers = multiprocessing.cpu_count()
+                self.process_pools[name] = ProcessPoolExecutor(
+                    max_workers=max_workers
+                )
+            return self.process_pools[name]
+            
+    def close_all(self):
+        """关闭所有资源"""
+        with self._lock:
+            for handle in self.file_handles.values():
+                try:
+                    handle.close()
+                except:
+                    pass
+            self.file_handles.clear()
+            
+            for pool in self.process_pools.values():
+                try:
+                    pool.shutdown()
+                except:
+                    pass
+            self.process_pools.clear()
+            
+    def __del__(self):
+        """析构时关闭资源"""
+        self.close_all()
 
-theta 			= 0.1										# 默认值 (0.1)
-tagDatePath 	= currentPath + "/OSS_Collector/repo_date/" 				# 默认路径
-resultPath		= currentPath + "/OSS_Collector/repo_functions/" 		# 默认路径
-verIDXpath		= currentPath + "/Preprocessor/verIDX/"					# 默认路径
-initialDBPath	= currentPath + "/Preprocessor/initialSigs/"  			# 默认路径
-finalDBPath		= currentPath + "/Preprocessor/componentDB/"  			# 最终组件数据库的默认路径
-metaPath		= currentPath + "/Preprocessor/metaInfos/"				# 默认路径，用于保存收集的仓库的元信息
-weightPath		= metaPath 	  + "/weights/"					# 默认路径，用于版本预测
-funcDatePath	= currentPath + "/Preprocessor/funcDate/"				# 默认路径
-log_path = currentPath + "/logs/Preprocessor"                           # 创建日志目录
-# 生成目录
-shouldMake 	= [verIDXpath, initialDBPath, finalDBPath, metaPath, funcDatePath, weightPath, log_path]
-for eachRepo in shouldMake:
-	if not os.path.isdir(eachRepo):
-		os.mkdir(eachRepo)
+class PerformanceMonitor:
+    """
+    性能监控类
+    
+    用于监控和记录程序运行过程中的性能指标:
+    - 处理速度
+    - 资源消耗
+    - 进度统计
+    """
+    
+    def __init__(self):
+        self.start_time = time.time()
+        self.processed_items = 0
+        self.last_log_time = self.start_time
+        
+    def update(self, items=1):
+        """更新处理项数并记录性能指标"""
+        self.processed_items += items
+        current_time = time.time()
+        
+        if current_time - self.last_log_time >= 60:  # 每60秒记录一次
+            elapsed = current_time - self.start_time
+            rate = self.processed_items / elapsed
+            
+            logging.info(f"性能统计:")
+            logging.info(f"- 总处理项数: {self.processed_items}")
+            logging.info(f"- 运行时间: {elapsed:.2f}秒")
+            logging.info(f"- 处理速率: {rate:.2f}项/秒")
+            
+            self.last_log_time = current_time
 
+class MemoryOptimizer:
+    """
+    内存优化器
+    
+    用于优化程序的内存使用:
+    - 分批处理大文件
+    - 及时释放内存
+    - 控制并发数量
+    """
+    
+    def __init__(self, target_memory_mb=1024):
+        self.target_memory = target_memory_mb * 1024 * 1024
+        self.batch_size = 1000
+        self._lock = multiprocessing.Lock()
+        
+    def get_memory_usage(self):
+        """获取当前内存使用量"""
+        import psutil
+        process = psutil.Process()
+        return process.memory_info().rss
+        
+    def optimize_batch_size(self):
+        """优化批处理大小"""
+        with self._lock:
+            current_memory = self.get_memory_usage()
+            
+            if current_memory > self.target_memory:
+                self.batch_size = max(100, self.batch_size // 2)
+            else:
+                self.batch_size = min(10000, self.batch_size * 2)
+                
+            return self.batch_size
+            
+    def process_in_batches(self, items, processor):
+        """分批处理数据"""
+        results = []
+        batch = []
+        
+        for item in items:
+            batch.append(item)
+            
+            if len(batch) >= self.batch_size:
+                results.extend(processor(batch))
+                batch = []
+                self.optimize_batch_size()
+                
+        if batch:
+            results.extend(processor(batch))
+            
+        return results
 
+# 全局配置
+currentPath = "/home/rby/Project/project-file/dependency_analysis/centris"
+separator = "#@#"
+sep_len = len(separator)
+theta = 0.1
 
-# 生成日志文件名，包含时间戳
-log_file = os.path.join(log_path, f"preprocessor_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+# 路径配置
+tagDatePath = currentPath + "/OSS_Collector/repo_date/"
+resultPath = currentPath + "/OSS_Collector/repo_functions/"
+verIDXpath = currentPath + "/Preprocessor/verIDX/"
+initialDBPath = currentPath + "/Preprocessor/initialSigs/"
+finalDBPath = currentPath + "/Preprocessor/componentDB/"
+metaPath = currentPath + "/Preprocessor/metaInfos/"
+weightPath = metaPath + "/weights/"
+funcDatePath = currentPath + "/Preprocessor/funcDate/"
+log_path = currentPath + "/logs/Preprocessor"
 
-# 修改日志配置
+# 创建必要目录
+required_dirs = [
+    verIDXpath,
+    initialDBPath, 
+    finalDBPath,
+    metaPath,
+    funcDatePath,
+    weightPath,
+    log_path
+]
+
+for directory in required_dirs:
+    if not os.path.isdir(directory):
+        try:
+            os.makedirs(directory)
+            logging.info(f"创建目录: {directory}")
+        except Exception as e:
+            logging.error(f"创建目录 {directory} 失败: {e}")
+
+# 配置日志
+log_file = os.path.join(log_path, 
+    f"preprocessor_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file, encoding='utf-8'),  # 文件处理器
-        logging.StreamHandler()  # 控制台处理器
+        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.StreamHandler()
     ]
 )
 
-funcDateDict	= {}
+# 创建全局资源管理器实例
+resource_manager = ResourceManager()
+memory_optimizer = MemoryOptimizer()
 
+# 创建缓存实例
+tlsh_cache = Cache()
+file_cache = Cache()
+func_cache = Cache()
+
+# 注册退出时的资源清理
+import atexit
+atexit.register(resource_manager.close_all)
 
 def extractVerDate(repoName):
-    """
-    提取版本（标签）日期
-    
-    参数：
-    repoName - 仓库名称
-    
-    返回：
-    verDateDict - 包含版本和对应日期的字典，所有标签都会被保存
-2024-09-15 12:40:43 -0400  (tag: swift-DEVELOPMENT-SNAPSHOT-2024-09-16-a, tag: swift-DEVELOPMENT-SNAPSHOT-2024-09-15-a)
-提取后形式为：
-    verDateDict = {
-        "swift-DEVELOPMENT-SNAPSHOT-2024-09-16-a": "2024-09-15",
-        "swift-DEVELOPMENT-SNAPSHOT-2024-09-15-a": "2024-09-15"
-    }
-    """
+    """提取版本日期信息"""
     verDateDict = {}
     repo_path = os.path.join(tagDatePath, repoName)
     
@@ -88,14 +301,13 @@ def extractVerDate(repoName):
                     continue
                     
                 line = line.strip()
-                date = line[0:10]  # 提取日期 YYYY-MM-DD
+                date = line[0:10]
                 
-                # 使用正则表达式匹配所有标签
                 tags = re.findall(r'tag:\s*([^,)]+)', line)
                 
                 for tag in tags:
                     version = tag.strip()
-                    if version:  # 确保版本号不为空
+                    if version:
                         verDateDict[version] = date
                         
     except Exception as e:
@@ -104,16 +316,7 @@ def extractVerDate(repoName):
     return verDateDict
 
 def process_single_repo(repoName):
-    """
-    处理单个仓库的函数
-    
-    参数：
-    repoName - 仓库名称
-    
-    返回：
-    repoName - 处理成功时返回仓库名称
-    None - 处理失败时返回None
-    """
+    """处理单个仓库"""
     try:
         logging.info(f"开始处理: {repoName}")
         
@@ -126,7 +329,7 @@ def process_single_repo(repoName):
         verDict = {}
         idx = 0
         
-        # 获取所有版本名称
+        # 获取版本列表
         for eachVersion in os.listdir(os.path.join(resultPath, repoName)):
             versionName = eachVersion.split("fuzzy_")[1].replace(".hidx", "")
             if versionName == '' or versionName == ' ':
@@ -139,7 +342,8 @@ def process_single_repo(repoName):
             verDict[versionName] = idx
             idx += 1
             
-            with open(os.path.join(resultPath, repoName, ("fuzzy_" + versionName + ".hidx")), 'r', encoding="UTF-8") as fp:
+            with open(os.path.join(resultPath, repoName, 
+                     ("fuzzy_" + versionName + ".hidx")), 'r', encoding="UTF-8") as fp:
                 next(fp)
                 for line in fp:
                     if line.strip() == '' or line.strip() == ' ':
@@ -156,7 +360,7 @@ def process_single_repo(repoName):
                     else:
                         tempDateDict[hashval].append("NODATE")
         
-        # 存储函数出生日期，存储的是每个hashval最早的出生日期
+        # 存储函数日期
         for hashval in tempDateDict:
             tempDateDict[hashval].sort()
             funcDateDict[hashval] = tempDateDict[hashval][0]
@@ -189,33 +393,42 @@ def process_single_repo(repoName):
         return None
 
 def redundancyElimination():
-    """
-    使用ProcessPoolExecutor进行并行处理的冗余消除
-    """
-    repo_list = os.listdir(resultPath)
+    """使用ProcessPoolExecutor进行并行的冗余消除"""
+    perf_monitor = PerformanceMonitor()
     
-    # 设置进程数为CPU核心数
+    repo_list = os.listdir(resultPath)
+    total_repos = len(repo_list)
+    logging.info(f"开始处理 {total_repos} 个仓库")
+    
     num_processes = multiprocessing.cpu_count()
     logging.info(f"使用 {num_processes} 个进程进行冗余消除")
     
+    processed = 0
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
-        # 提交所有任务
-        future_to_repo = {executor.submit(process_single_repo, repo): repo for repo in repo_list}
+        future_to_repo = {
+            executor.submit(process_single_repo, repo): repo 
+            for repo in repo_list
+        }
         
-        # 等待所有任务完成并处理结果
         for future in concurrent.futures.as_completed(future_to_repo):
             repo = future_to_repo[future]
+            processed += 1
             try:
                 result = future.result()
                 if result:
                     logging.info(f"成功处理仓库: {result}")
+                    
+                progress = (processed / total_repos) * 100
+                if processed % 10 == 0:
+                    logging.info(f"进度: {progress:.2f}% ({processed}/{total_repos})")
+                    
+                perf_monitor.update()
+                    
             except Exception as e:
                 logging.error(f"处理仓库 {repo} 时发生错误: {e}")
 
 def process_single_meta(OSS):
-    """
-    处理单个仓库的元信息
-    """
+    """处理单个仓库的元信息"""
     try:
         weightJson = {}
         repoName = OSS.replace("_sig", "")
@@ -232,7 +445,7 @@ def process_single_meta(OSS):
             'unique': {},
             'weights': {}
         }
-        # 处理仓库的每个函数
+        
         with open(initialDBPath + OSS, 'r', encoding="UTF-8") as fs:
             jsonStr = json.load(fs)
             totFuncs = len(jsonStr)
@@ -248,7 +461,6 @@ def process_single_meta(OSS):
             result['allFuncs'] = int(totFuncs)
             result['weights'] = weightJson
 
-        # 写入权重文件
         with open(weightPath + "/" + repoName + "_weights", 'w') as fwei:
             fwei.write(json.dumps(weightJson))
             
@@ -259,23 +471,29 @@ def process_single_meta(OSS):
         return None
 
 def saveMetaInfos():
-    """
-    使用ProcessPoolExecutor并行保存元信息
-    """
+    """使用ProcessPoolExecutor并行保存元信息"""
+    perf_monitor = PerformanceMonitor()
+    
     aveFuncJson = {}
     allFuncJson = {}
     unique = {}
     
     OSS_list = os.listdir(initialDBPath)
+    total_oss = len(OSS_list)
+    logging.info(f"开始处理 {total_oss} 个仓库的元信息")
+    
     num_processes = multiprocessing.cpu_count()
     logging.info(f"使用 {num_processes} 个进程处理元信息")
     
+    processed = 0
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
-        # 提交所有任务
-        future_to_oss = {executor.submit(process_single_meta, oss): oss for oss in OSS_list}
+        future_to_oss = {
+            executor.submit(process_single_meta, oss): oss 
+            for oss in OSS_list
+        }
         
-        # 收集结果
         for future in concurrent.futures.as_completed(future_to_oss):
+            processed += 1
             try:
                 result = future.result()
                 if result:
@@ -283,6 +501,13 @@ def saveMetaInfos():
                     aveFuncJson[repoName] = result['aveFuncs']
                     allFuncJson[repoName] = result['allFuncs']
                     unique.update(result['unique'])
+                    
+                progress = (processed / total_oss) * 100
+                if processed % 10 == 0:
+                    logging.info(f"进度: {progress:.2f}% ({processed}/{total_oss})")
+                    
+                perf_monitor.update()
+                    
             except Exception as e:
                 logging.error(f"处理元信息时发生错误: {e}")
     
@@ -293,7 +518,6 @@ def saveMetaInfos():
     with open(metaPath + "allFuncs", 'w') as fall:
         fall.write(json.dumps(allFuncJson))
     
-    # 生成并写入唯一函数信息
     uniqueJson = []
     for hashval in unique:
         temp = {"hash": hashval, "OSS": [unique[hashval]]}
@@ -303,41 +527,25 @@ def saveMetaInfos():
         funi.write(json.dumps(uniqueJson))
 
 def readVerDate(verDateDict, repoName):
-    """
-    读取版本日期
-    
-    参数：
-    verDateDict - 存储版本日期的字典
-    repoName - 仓库名称
-    
-    返回：
-    更新后的verDateDict
-    """
+    """读取版本日期"""
     verDateDict[repoName] = {}
 
     if os.path.isfile(funcDatePath + repoName + "_funcdate"):
         with open(funcDatePath + repoName + "_funcdate", 'r', encoding="UTF-8") as fp:
             for eachLine in fp:
                 eachLine = eachLine.strip()
-                if eachLine:  # 确保行不为空
+                if eachLine:
                     hashval, date = eachLine.split('\t')
                     verDateDict[repoName][hashval] = date
     return verDateDict
 
 def getAveFuncs():
-    """
-    获取平均函数数
-    
-    返回：
-    aveFuncs - 包含每个仓库平均函数数的字典
-    """
+    """获取平均函数数"""
     with open(metaPath + "aveFuncs", 'r', encoding = "UTF-8") as fp:
         return json.load(fp)
 
 def process_single_segmentation(S_sig, aveFuncs, uniqueFuncs):
-    """
-    处理单个仓库的代码分割
-    """
+    """处理单个仓库的代码分割"""
     try:
         S = S_sig.replace("_sig", "")
         possibleMembers = {}
@@ -345,7 +553,6 @@ def process_single_segmentation(S_sig, aveFuncs, uniqueFuncs):
         removedFuncs = []
         verDateDict = {}
         
-        # 读取当前仓库的版本日期
         verDateDict = readVerDate(verDateDict, S)
         
         with open(initialDBPath + S_sig, 'r', encoding="UTF-8") as fs:
@@ -381,7 +588,6 @@ def process_single_segmentation(S_sig, aveFuncs, uniqueFuncs):
                     except:
                         pass
 
-            # 确定可能的成员
             for X in candiX:
                 if aveFuncs[X] == 0 or len(verDateDict[X]) == 0:
                     continue
@@ -391,9 +597,9 @@ def process_single_segmentation(S_sig, aveFuncs, uniqueFuncs):
                     possibleMembers[S].append(X)
                     removedFuncs.extend(temp[X])
 
-            # 生成最终签名文件
             if S not in possibleMembers:
-                shutil.copy(os.path.join(initialDBPath, S)+"_sig", os.path.join(finalDBPath, S)+"_sig")
+                shutil.copy(os.path.join(initialDBPath, S)+"_sig", 
+                          os.path.join(finalDBPath, S)+"_sig")
             else:
                 removedFuncs = set(removedFuncs)
                 saveJson = []
@@ -413,12 +619,11 @@ def process_single_segmentation(S_sig, aveFuncs, uniqueFuncs):
         return None
 
 def codeSegmentation():
-    """
-    使用ProcessPoolExecutor并行进行代码分割
-    """
+    """使用ProcessPoolExecutor并行进行代码分割"""
+    perf_monitor = PerformanceMonitor()
+    
     aveFuncs = getAveFuncs()
     
-    # 读取唯一函数信息
     uniqueFuncs = {}
     with open(metaPath + "uniqueFuncs", 'r', encoding="UTF-8") as fp:
         jsonStr = json.load(fp)
@@ -427,15 +632,14 @@ def codeSegmentation():
             uniqueFuncs[hashval] = eachVal['OSS']
     
     OSS_list = os.listdir(initialDBPath)
-    tot = len(OSS_list)
-    logging.info(f'[+] 读取OSS签名.. 总数: {tot}')
+    total_oss = len(OSS_list)
+    logging.info(f'开始代码分割,共 {total_oss} 个仓库')
     
     num_processes = multiprocessing.cpu_count()
     logging.info(f"使用 {num_processes} 个进程进行代码分割")
     
-    completed = 0
+    processed = 0
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
-        # 提交所有任务
         future_to_oss = {
             executor.submit(
                 process_single_segmentation, 
@@ -445,26 +649,33 @@ def codeSegmentation():
             ): oss for oss in OSS_list
         }
         
-        # 处理结果
         for future in concurrent.futures.as_completed(future_to_oss):
+            processed += 1
             try:
                 result = future.result()
-                completed += 1
                 if result:
-                    logging.info(f'进度: {completed}/{tot} - 完成: {result}')
+                    progress = (processed / total_oss) * 100
+                    if processed % 10 == 0:
+                        logging.info(f"进度: {progress:.2f}% ({processed}/{total_oss})")
+                    
+                    perf_monitor.update()
+                    
             except Exception as e:
                 logging.error(f"代码分割时发生错误: {e}")
 
 def main():
-    """
-    主函数
-    
-    按顺序执行冗余消除、保存元信息和代码分割
-    """
-    redundancyElimination()
-    saveMetaInfos()
-    codeSegmentation()
+    """主函数"""
+    try:
+        redundancyElimination()
+        saveMetaInfos()
+        codeSegmentation()
+    finally:
+        # 清理资源
+        resource_manager.close_all()
+        # 清理缓存
+        tlsh_cache.clear()
+        file_cache.clear()
+        func_cache.clear()
 
-""" 执行 """
 if __name__ == "__main__":
-	main()
+    main()
