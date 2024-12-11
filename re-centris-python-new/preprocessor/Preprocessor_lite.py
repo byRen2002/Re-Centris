@@ -1,21 +1,4 @@
-"""
-预处理器模块 - 用于预处理开源代码库
-
-该模块实现了以下主要功能:
-1. 冗余消除 - 移除重复的函数签名
-2. 元信息保存 - 保存版本、函数数量等元数据
-3. 代码分割 - 基于相似度的代码分割
-
-主要类和函数:
-- PreprocessorConfig: 配置管理
-- SignatureProcessor: 签名处理
-- MetaInfoManager: 元信息管理
-- CodeSegmenter: 代码分割
-
-作者: Seunghoon Woo (seunghoonwoo@korea.ac.kr)
-修改: byRen2002 (2024-03-21)
-许可证: MIT License
-"""
+"""预处理器模块 - 用于预处理开源代码库。主要功能:1.冗余消除-移除重复函数签名 2.元信息保存-保存版本、函数数量等元数据 3.代码分割-基于相似度的代码分割。主要类和函数:PreprocessorConfig(配置管理),SignatureProcessor(签名处理),MetaInfoManager(元信息管理),CodeSegmenter(代码分割)。作者:Seunghoon Woo,修改:byRen2002,许可证:MIT"""
 
 import os
 import sys
@@ -103,12 +86,7 @@ class SignatureProcessor:
     """签名处理类"""
     
     def __init__(self, config):
-        """
-        初始化签名处理器
-        
-        参数:
-            config: PreprocessorConfig实例
-        """
+        """初始化签名处理器,参数:config:PreprocessorConfig实例"""
         self.config = config
         self.resource_manager = ResourceManager()
         self.cache = Cache()

@@ -1,0 +1,12 @@
+workDir: "./repos"
+concurrency: 4
+
+database:
+  path: "./data"
+
+detector:
+  threshold: 0.8
+
+logging:
+  level: "info"
+  format: "json" 

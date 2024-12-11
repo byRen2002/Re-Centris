@@ -1,22 +1,4 @@
-"""
-预处理器 - 用于处理开源代码库的函数提取和分析
-
-该模块实现了以下主要功能:
-1. 提取仓库版本日期信息
-2. 消除冗余函数
-3. 保存元信息
-4. 代码分割
-
-主要类:
-- Cache: 缓存计算结果
-- ResourceManager: 管理文件句柄等资源
-- PerformanceMonitor: 监控处理性能
-- MemoryOptimizer: 优化内存使用
-
-作者: byRen2002
-修改日期: 2024年10月25日
-许可证: MIT License
-"""
+"""预处理器 - 用于处理开源代码库的函数提取和分析,实现了版本日期提取、冗余消除、元信息保存和代码分割等功能"""
 
 import os
 import sys
@@ -37,14 +19,7 @@ CACHE_SIZE = 1000  # 缓存大小限制
 CACHE_EXPIRE = 3600  # 缓存过期时间(秒)
 
 class Cache:
-    """
-    通用缓存类
-    
-    用于缓存计算结果,减少重复计算:
-    - TLSH哈希值缓存
-    - 文件内容缓存
-    - 函数解析结果缓存
-    """
+    """通用缓存类,用于缓存计算结果减少重复计算,包括TLSH哈希值、文件内容和函数解析结果的缓存"""
     
     def __init__(self, max_size=CACHE_SIZE, expire=CACHE_EXPIRE):
         self.cache = {}
@@ -88,14 +63,7 @@ class Cache:
             self.access_times.clear()
 
 class ResourceManager:
-    """
-    资源管理类
-    
-    管理程序运行过程中的各种资源:
-    - 文件句柄
-    - 进程池
-    - 内存使用
-    """
+    """资源管理类,管理程序运行过程中的文件句柄、进程池和内存使用等资源"""
     
     def __init__(self):
         self.file_handles = {}
@@ -143,14 +111,7 @@ class ResourceManager:
         self.close_all()
 
 class PerformanceMonitor:
-    """
-    性能监控类
-    
-    用于监控和记录程序运行过程中的性能指标:
-    - 处理速度
-    - 资源消耗
-    - 进度统计
-    """
+    """性能监控类,用于监控和记录程序运行过程中的处理速度、资源消耗和进度统计等性能指标"""
     
     def __init__(self):
         self.start_time = time.time()
@@ -174,14 +135,7 @@ class PerformanceMonitor:
             self.last_log_time = current_time
 
 class MemoryOptimizer:
-    """
-    内存优化器
-    
-    用于优化程序的内存使用:
-    - 分批处理大文件
-    - 及时释放内存
-    - 控制并发数量
-    """
+    """内存优化器,用于优化程序的内存使用,包括分批处理大文件、及时释放内存和控制并发数量"""
     
     def __init__(self, target_memory_mb=1024):
         self.target_memory = target_memory_mb * 1024 * 1024

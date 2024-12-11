@@ -1,28 +1,4 @@
-"""
-开源软件收集器模块 - 用于收集和处理开源代码库中的函数信息
-
-该模块实现了基于TLSH(Trend Micro Locality Sensitive Hash)的代码函数收集和哈希处理。
-主要功能包括:
-1. 遍历本地Git仓库中的源代码文件
-2. 提取C/C++函数信息
-3. 计算函数的TLSH哈希值
-4. 生成函数索引文件
-5. 管理仓库版本和标签
-
-主要类和函数:
-- Cache: 缓存管理
-- ResourceManager: 资源管理
-- MemoryOptimizer: 内存优化
-- PerformanceMonitor: 性能监控
-- process_single_file: 处理单个文件
-- hashing: 处理源代码文件并生成哈希
-- indexing: 生成索引文件
-
-作者: byRen2002
-修改日期: 2024年10月20日
-许可证: MIT License
-
-"""
+"""开源软件收集器模块 - 用于收集和处理开源代码库中的函数信息。该模块实现了基于TLSH(Trend Micro Locality Sensitive Hash)的代码函数收集和哈希处理。主要功能包括:1.遍历本地Git仓库中的源代码文件 2.提取C/C++函数信息 3.计算函数的TLSH哈希值 4.生成函数索引文件 5.管理仓库版本和标签。主要类和函数: Cache:缓存管理, ResourceManager:资源管理, MemoryOptimizer:内存优化, PerformanceMonitor:性能监控, process_single_file:处理单个文件, hashing:处理源代码文件并生成哈希, indexing:生成索引文件。作者:byRen2002 修改日期:2024年10月20日 许可证:MIT License"""
 
 import os
 import sys
@@ -256,18 +232,7 @@ def get_file_hash(filepath: str) -> str:
     return hasher.hexdigest()
 
 def computeTlsh(string: str) -> str:
-    """
-    使用TLSH算法计算输入字符串的哈希值
-    
-    参数:
-        string: 输入字符串
-        
-    返回:
-        str: TLSH哈希值
-        
-    异常:
-        ValueError: 输入字符串为空
-    """
+    """使用TLSH算法计算输入字符串的哈希值。参数:string:输入字符串。返回:str:TLSH哈希值。异常:ValueError:输入字符串为空"""
     if not string:
         raise ValueError("Empty input string")
         
@@ -280,15 +245,7 @@ def computeTlsh(string: str) -> str:
         return ""
 
 def removeComment(string: str) -> str:
-    """
-    删除C/C++风格的注释
-    
-    参数:
-        string: 输入代码字符串
-        
-    返回:
-        str: 删除注释后的代码
-    """
+    """删除C/C++风格的注释。参数:string:输入代码字符串。返回:str:删除注释后的代码"""
     c_regex = re.compile(
         r'(?P<comment>//.*?$|[{}]+)|'
         r'(?P<multilinecomment>/\*.*?\*/)|'
@@ -298,15 +255,7 @@ def removeComment(string: str) -> str:
     return ''.join([c.group('noncomment') for c in c_regex.finditer(string) if c.group('noncomment')])
 
 def normalize(string: str) -> str:
-    """
-    规范化输入字符串
-    
-    参数:
-        string: 输入字符串
-        
-    返回:
-        str: 规范化后的字符串
-    """
+    """规范化输入字符串。参数:string:输入字符串。返回:str:规范化后的字符串"""
     return ''.join(
         string.replace('\n', '')
               .replace('\r', '')
@@ -317,18 +266,7 @@ def normalize(string: str) -> str:
     ).lower()
 
 def read_file_safely(file_path: str) -> str:
-    """
-    安全地读取文件内容
-    
-    参数:
-        file_path: 文件路径
-        
-    返回:
-        str: 文件内容
-        
-    异常:
-        IOError: 文件读取错误
-    """
+    """安全地读取文件内容。参数:file_path:文件路径。返回:str:文件内容。异常:IOError:文件读取错误"""
     if not os.path.exists(file_path):
         logging.warning(f"文件不存在: {file_path}")
         return ""
@@ -370,21 +308,7 @@ def read_file_safely(file_path: str) -> str:
         return ""
 
 def process_single_file(file_path: str, base_path: str, cache: Cache) -> Tuple[List[Tuple[str, str]], int, int, int]:
-    """
-    处理单个文件并返回结果
-    
-    参数:
-        file_path: 文件路径
-        base_path: 基础路径
-        cache: 缓存对象
-        
-    返回:
-        Tuple[List[Tuple[str, str]], int, int, int]: 
-            - 哈希值和文件路径对的列表
-            - 文件数(0或1)
-            - 函数数
-            - 代码行数
-    """
+    """处理单个文件并返回结果。参数:file_path:文件路径,base_path:基础路径,cache:缓存对象。返回:Tuple[List[Tuple[str, str]], int, int, int]:哈希值和文件路径对的列表,文件数(0或1),函数数,代码行数"""
     try:
         # 检查缓存
         file_hash = get_file_hash(file_path)
@@ -468,20 +392,7 @@ def process_single_file(file_path: str, base_path: str, cache: Cache) -> Tuple[L
         return [], 0, 0, 0
 
 def hashing(repo_path: str, cache: Cache) -> Tuple[Dict, int, int, int]:
-    """
-    并行处理仓库中的所有C/C++文件
-    
-    参数:
-        repo_path: 仓库路径
-        cache: 缓存对象
-        
-    返回:
-        Tuple[Dict, int, int, int]:
-            - 结果字典
-            - 文件数
-            - 函数数
-            - 代码行数
-    """
+    """并行处理仓库中的所有C/C++文件。参数:repo_path:仓库路径,cache:缓存对象。返回:Tuple[Dict, int, int, int]:结果字典,文件数,函数数,代码行数"""
     possible = (".c", ".cc", ".cpp", ".cxx", ".h", ".hpp")
     result_dict = defaultdict(list)
     
@@ -529,14 +440,7 @@ def hashing(repo_path: str, cache: Cache) -> Tuple[Dict, int, int, int]:
     return result_dict, file_count, func_count, line_count
 
 def indexing(resDict: Dict, title: str, filePath: str) -> None:
-    """
-    为每个OSS建立索引并写入文件
-    
-    参数:
-        resDict: 结果字典
-        title: 标题行
-        filePath: 输出文件路径
-    """
+    """为每个OSS建立索引并写入文件。参数:resDict:结果字典,title:标题行,filePath:输出文件路径"""
     try:
         with open(filePath, 'w') as fres:
             fres.write(title + '\n')
@@ -555,15 +459,7 @@ def indexing(resDict: Dict, title: str, filePath: str) -> None:
         raise
 
 def get_repo_paths(base_path: str) -> List[str]:
-    """
-    获取所有仓库路径
-    
-    参数:
-        base_path: 基础路径
-        
-    返回:
-        List[str]: 仓库路径列表
-    """
+    """获取所有仓库路径。参数:base_path:基础路径。返回:List[str]:仓库路径列表"""
     repo_paths = []
     try:
         for item in os.listdir(base_path):
