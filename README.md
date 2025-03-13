@@ -1,186 +1,177 @@
-# Centris - 代码克隆与依赖分析工具 (Go版本)
+# Re-Centris
 
-Centris 是一个用于识别开源组件的工具。它可以精确、可扩展地识别组件，即使它们通过代码/结构修改而被重用。本工具通过四个主要步骤完成代码克隆检测：克隆远程仓库、收集库信息、提取代码签名、执行相似度检测。
+Re-Centris是一个高性能的代码相似度分析工具，基于TLSH(Trend Micro Locality Sensitive Hash)算法实现。它专注于代码克隆检测、开源组件识别和依赖关系分析，支持多种编程语言。
 
-## 功能特点
+## 主要特性
 
-- **远程仓库克隆**: 支持批量克隆GitHub仓库
-- **代码信息收集**: 自动提取和管理代码库元数据
-- **签名生成**: 使用Universal-Ctags提取函数级别特征
-- **克隆检测**: 基于TLSH算法的代码相似度分析
-- **高性能处理**: Go语言实现的并发处理
-- **内存优化**: 支持大规模代码分析
-- **详细日志**: 结构化日志输出
+- **高精度代码相似度分析**
+  - 基于TLSH算法的模糊哈希匹配
+  - 支持检测代码重构和变体
+  - 函数级别的细粒度分析
 
-## 系统要求
-- Linux操作系统
-- Go 1.19+
-- Git
-- Universal-Ctags 5.9.0+：用于函数解析
-- 足够的磁盘空间用于克隆代码库
+- **多语言支持**
+  - Python版本支持：C/C++、Java、Python
+  - Go版本当前支持：C/C++（其他语言支持持续添加中）
 
-## 安装
+- **高性能设计**
+  - 多进程/协程并行处理
+  - 内存映射技术
+  - 智能缓存机制
+  - 资源使用优化
 
-1. 克隆仓库:
+- **丰富的分析功能**
+  - 开源组件识别
+  - 代码克隆检测
+  - 依赖关系分析
+  - 版本信息提取
+
+## 版本选择指南
+
+### Python版本
+- 适用场景：
+  - 需要分析多种编程语言
+  - 需要更灵活的扩展性
+  - 对易用性要求较高
+
+### Go版本
+- 适用场景：
+  - 大规模代码库分析
+  - 对性能要求极高
+  - 主要分析C/C++代码
+
+## 快速开始
+
+### Python版本安装
+
 ```bash
-git clone https://github.com/byRen2002/Re-Centris.git
-cd centris
+# 1. 克隆仓库
+git clone https://github.com/xxx/xxx.git
+cd re-centris
+
+# 2. 创建并激活虚拟环境
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
+# 3. 安装依赖
+pip install -r requirements.txt
 ```
 
-2. 安装依赖:
+### Go版本安装
+
 ```bash
-go mod download
+# 1. 克隆仓库
+git clone https://github.com/yourusername/re-centris-go.git
+cd re-centris-go
+
+# 2. 构建项目
+go build -o re-centris ./cmd/re-centris
+
+# 3. (可选)系统级安装
+go install ./cmd/re-centris
 ```
 
-3. 安装Universal-Ctags:
+## 使用示例
+
+### Python版本
+
 ```bash
-# Ubuntu/Debian
-  $ git clone https://github.com/universal-ctags/ctags.git
-  $ cd ctags
-  $ ./autogen.sh
-  $ ./configure  # use --prefix=/where/you/want to override installation directory, defaults to /usr/local
-  $ make
-  $ make install # may require extra privileges depending on where to install
+# 1. 收集开源代码信息
+python -m osscollector.collector -c config.yaml
+
+# 2. 预处理代码
+python -m preprocessor.preprocessor -c config.yaml
+
+# 3. 执行相似度检测
+python -m detector.detector -c config.yaml -i path/to/input/code
 ```
 
-4. 编译:
+### Go版本
+
 ```bash
-go build -o centris cmd/centris/main.go
+# 1. 克隆并收集代码
+re-centris clone repo-list.txt -o ./repos
+
+# 2. 分析代码
+re-centris analyze ./source-code -o ./analysis
+
+# 3. 执行相似度检测
+re-centris detect target-file.cpp -k ./known-files -o results.json
 ```
 
-## 配置
+## 配置说明
 
-编辑 `config.yaml` 文件:
+配置文件使用YAML格式，支持以下主要配置项：
 
 ```yaml
-workDir: "./repos"
-concurrency: 4
+paths:
+  repo_path: "./repos"
+  tag_date_path: "./data/repo_date"
+  result_path: "./data/repo_functions"
 
-database:
-  path: "./data"
+performance:
+  max_workers: 0  # 自动使用可用CPU核心数
+  cache_size: 1000
+  memory_limit: 0.8  # 最大内存使用率
 
-detector:
-  threshold: 0.8
-
-logging:
-  level: "info"
-  format: "json"
+languages:
+  cpp:
+    enabled: true
+    extensions: [".c", ".cc", ".cpp", ".cxx", ".h", ".hpp"]
+  java:
+    enabled: false
+    extensions: [".java"]
+  python:
+    enabled: false
+    extensions: [".py"]
 ```
-
-## 使用方法
-
-1. 分析目标目录:
-```bash
-./centris --target /path/to/target
-```
-
-2. 克隆并分析远程仓库:
-```bash
-./centris --config config.yaml
-```
-
-### 命令行参数
-
-- `--target`: 要分析的目标目录
-- `--config`: 配置文件路径 (默认: config.yaml)
-- `--debug`: 启用调试日志
 
 ## 项目结构
 
+### Python版本
 ```
-centris/
-├── cmd/
-│   └── centris/
-│       └── main.go         # 主程序入口
-├── internal/
-│   ├── clone/             # 仓库克隆模块
-│   ├── collector/         # OSS信息收集模块
-│   ├── preprocessor/      # 代码预处理模块
-│   └── detector/          # 克隆检测模块
-├── pkg/
-│   ├── config/           # 配置管理
-│   ├── database/         # 数据存储
-│   └── utils/           # 通用工具
-├── go.mod
-├── go.sum
-└── README.md
+re-centris/
+├── core/                  # 核心功能模块
+├── osscollector/         # 开源代码收集
+├── preprocessor/         # 代码预处理
+├── detector/             # 相似度检测
+├── config.yaml          
+└── requirements.txt      
 ```
 
-
-<br/>
-<br/>
-
-   
-
-# Centris - 代码克隆与依赖分析工具 (Python版本)
-针对原版Centris，我们对其进行了优化修改。
-## 系统要求
-
-- Linux操作系统
-- Python 3.7+
-- Git
-- Universal-Ctags 5.9.0+：用于函数解析
-- Python3-tlsh：用于函数哈希
-- 足够的磁盘空间用于克隆代码库
-
-## 安装
-
-1. 安装Python依赖:
-  ``` bash
-  pip install -r requirements.txt
-  ```
-
-2. 安装Universal-Ctags:
-``` bash
-    $ git clone https://github.com/universal-ctags/ctags.git
-    $ cd ctags
-    $ ./autogen.sh
-    $ ./configure  # use --prefix=/where/you/want to override installation directory, defaults to /usr/local
-    $ make
-    $ make install # may require extra privileges depending on where to install
+### Go版本
 ```
-## 使用流程
-
-### 1. 克隆远程仓库
-
-使用Clone_Repo模块克隆GitHub仓库，用以构建组件数据库
-
-```bash
-python Clone_Repo.py 
+re-centris-go/
+├── cmd/                  # CLI入口
+├── internal/            # 核心实现
+│   ├── analyzer/       # 代码分析
+│   ├── collector/      # 代码收集
+│   ├── detector/      # 相似度检测
+│   └── preprocessor/  # 预处理
+└── config.yaml
 ```
 
-### 2. 收集库信息
+## 输出结果
 
-使用OSS_Collector收集已克隆仓库的信息:
+分析结果以JSON格式输出，包含：
+- 相似度评分
+- 函数级别匹配信息
+- 依赖关系图谱
+- 版本信息追踪
 
-```bash
-python OSS_Collector.py
-```
+## 贡献指南
 
+欢迎提交Pull Request！请确保：
 
-### 3. 提取代码签名
-
-通过两种方式通过预处理创建组件 DB：使用完整的预处理器（Preprocessor_full.py，在本文中使用）或精简版本的预处理器（Preprocessor_lite.py）。唯一的区别是是否包括两个软件的共同功能甚至相似的功能（对于完整），还是只考虑完全相同的功能（对于精简版）。如果使用 lite 预处理器创建组件 DB，则运行时间比完整预处理器短得多，但组件识别准确性会略有降低
-
-```bash
-python Preprocessor_full.py
-```
-或
-```bash
-python Preprocessor_lite.py
-```
-
-
-### 4. 执行克隆检测
-
-使用Detector模块进行相似度检测:
-
-```bash
-python Detector.py  --target /path/to/target
-```
-参数说明:
-- `--target`: 目标代码目录
+1. 代码通过所有测试
+2. 添加必要的测试用例
+3. 更新相关文档
+4. 遵循项目代码规范
 
 ## 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+MIT License - 详见LICENSE文件
+
+## 关于
+
+由byRen2002开发维护。问题反馈请提交GitHub Issue。 

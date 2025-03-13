@@ -1,0 +1,85 @@
+# Re-Centris 配置文件
+
+# 路径配置
+paths:
+  # 仓库路径
+  repo_path: "./repos"
+  # 标签日期路径
+  tag_date_path: "./osscollector/repo_date"
+  # 结果路径
+  result_path: "./osscollector/repo_functions"
+  # 日志路径
+  log_path: "./logs"
+  # 版本索引路径
+  ver_idx_path: "./preprocessor/verIDX"
+  # 初始签名数据库路径
+  initial_db_path: "./preprocessor/initialSigs"
+  # 最终组件数据库路径
+  final_db_path: "./preprocessor/componentDB"
+  # 元信息路径
+  meta_path: "./preprocessor/metaInfos"
+  # 权重路径
+  weight_path: "./preprocessor/metaInfos/weights"
+  # 函数日期路径
+  func_date_path: "./preprocessor/funcDate"
+  # 缓存路径
+  cache_path: "./cache"
+
+# 性能配置
+performance:
+  # 最大工作进程数，默认为CPU核心数
+  max_workers: null
+  # 缓存大小
+  cache_size: 1000
+  # 缓存过期时间(秒)
+  cache_expire: 3600
+  # 内存使用限制(0.0-1.0)
+  memory_limit: 0.9
+  # 超时时间(秒)
+  timeout: 30
+  # 批处理大小
+  batch_size: 1000
+
+# 日志配置
+logging:
+  # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  # 日志文件最大大小(字节)
+  max_size: 10485760  # 10MB
+  # 日志文件备份数量
+  backup_count: 5
+
+# 分析配置
+analysis:
+  # 相似度阈值
+  theta: 0.1
+  # TLSH差异阈值
+  tlsh_threshold: 30
+
+# 外部工具配置
+external_tools:
+  # ctags路径
+  ctags_path: "ctags"
+
+# 支持的语言配置
+languages:
+  # C/C++
+  cpp:
+    enabled: true
+    extensions: [".c", ".cc", ".cpp", ".cxx", ".h", ".hpp"]
+  # Java
+  java:
+    enabled: false
+    extensions: [".java"]
+  # Python
+  python:
+    enabled: false
+    extensions: [".py"]
+  # JavaScript
+  javascript:
+    enabled: false
+    extensions: [".js", ".jsx", ".ts", ".tsx"]
+  # Go
+  go:
+    enabled: false
+    extensions: [".go"] 
