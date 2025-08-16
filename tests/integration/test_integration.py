@@ -22,7 +22,7 @@ from preprocessor.preprocessor import (
     MetaInfoManager,
     CodeSegmenter
 )
-from detector.detector import Detector
+from detector.run_detector import Detector
 
 class TestIntegration(unittest.TestCase):
     """Re-Centris系统集成测试"""

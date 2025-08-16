@@ -14,7 +14,7 @@ import json
 import tlsh
 from unittest.mock import patch, MagicMock
 
-from detector.detector import Detector
+from detector.run_detector import Detector
 from core.config_manager import ConfigManager
 
 class TestDetector(unittest.TestCase):

@@ -30,17 +30,18 @@ project_dir = os.path.dirname(os.path.dirname(current_file_path))
 analyse_file_dir = os.path.join(project_dir,"analyse_file")
 
 # 定义各种路径
+oss_collector_path = analyse_file_dir + "/oss_collector"
 repo_dir = os.path.join(project_dir,"repos")	# 本地仓库的存储路径
-tag_date_path = analyse_file_dir + "/oss_collector/repo_date"		# 存储标签日期的路径
-result_path	= analyse_file_dir + "/oss_collector/repo_functions"	# 存储结果的路径
+tag_date_path = oss_collector_path + "/repo_date"		# 存储标签日期的路径
+result_path	= oss_collector_path + "/repo_functions"	# 存储结果的路径
 log_path = analyse_file_dir +  "/logs/oss_collector"  # 日志存储目录
-status_path = analyse_file_dir + "/oss_collector/status.json" # 状态文件路径
-temp_path = analyse_file_dir + "/oss_collector/temp"  # 临时文件目录
+status_path = oss_collector_path + "/status.json" # 状态文件路径
+temp_path = oss_collector_path + "/temp"  # 临时文件目录
 ctags_path	= "/usr/local/bin/ctags" 			# Ctags工具的路径,用于解析C/C++代码
 
 
 # 创建必要的目录
-shouldMake = [tag_date_path, result_path, log_path, temp_path]
+shouldMake = [oss_collector_path, tag_date_path, result_path, log_path, temp_path]
 for eachRepo in shouldMake:
     if not os.path.isdir(eachRepo):
         os.makedirs(eachRepo, exist_ok=True)

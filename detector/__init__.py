@@ -10,6 +10,6 @@
 许可证: MIT License
 """
 
-from .detector import Detector
+from .run_detector import Detector
 
 __all__ = ['Detector'] 

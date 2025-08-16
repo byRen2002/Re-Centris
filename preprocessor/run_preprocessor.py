@@ -24,20 +24,20 @@ import datetime
 current_file_path = os.path.abspath(__file__)
 # 获取项目根目录
 analyse_file_dir = os.path.join(os.path.dirname(os.path.dirname(current_file_path)),"analyse_file")
-print(analyse_file_dir)
+preprocess_path = analyse_file_dir + "/preprocessor"
 
 theta 			= 0.1										# 默认值 (0.1)
 tagDatePath 	= analyse_file_dir + "/oss_collector/repo_date/" 				# 默认路径
 resultPath		= analyse_file_dir + "/oss_collector/repo_functions/" 		# 默认路径
-verIDXpath		= analyse_file_dir + "/preprocessor/verIDX/"					# 默认路径
-initialDBPath	= analyse_file_dir + "/preprocessor/initialSigs/"  			# 默认路径
-finalDBPath		= analyse_file_dir + "/preprocessor/componentDB/"  			# 最终组件数据库的默认路径
-metaPath		= analyse_file_dir + "/preprocessor/metaInfos/"				# 默认路径，用于保存收集的仓库的元信息
+verIDXpath		= preprocess_path + "/verIDX/"					# 默认路径
+initialDBPath	= preprocess_path + "/initialSigs/"  			# 默认路径
+finalDBPath		= preprocess_path + "/componentDB/"  			# 最终组件数据库的默认路径
+metaPath		= preprocess_path + "/metaInfos/"				# 默认路径，用于保存收集的仓库的元信息
 weightPath		= metaPath 	  + "/weights/"					# 默认路径，用于版本预测
-funcDatePath	= analyse_file_dir + "/preprocessor/funcDate/"				# 默认路径
+funcDatePath	= preprocess_path + "/funcDate/"				# 默认路径
 log_path = analyse_file_dir + "/logs/preprocessor"                           # 创建日志目录
 # 生成目录
-shouldMake 	= [verIDXpath, initialDBPath, finalDBPath, metaPath, funcDatePath, weightPath, log_path]
+shouldMake 	= [preprocess_path, verIDXpath, initialDBPath, finalDBPath, metaPath, funcDatePath, weightPath, log_path]
 for eachRepo in shouldMake:
 	if not os.path.isdir(eachRepo):
 		os.mkdir(eachRepo)

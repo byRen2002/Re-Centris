@@ -20,13 +20,20 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
 from typing import Dict, List, Tuple, Optional, Any
 
+# 添加项目根目录到Python路径
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 from core.config_manager import ConfigManager
 from core.cache import Cache
 from core.resource_manager import ResourceManager
 from core.memory_optimizer import MemoryOptimizer
 from core.performance_monitor import PerformanceMonitor
-from core.logger import logger, setup_logger
+from core.logger import setup_logger
 from core.parallel_manager import ParallelManager
+
+# 设置日志
+logger = setup_logger("detector")
 
 class Detector:
     """代码克隆和依赖关系检测器类"""
@@ -44,14 +51,16 @@ class Detector:
         self.parallel_manager = ParallelManager()
         
         # 设置日志
-        setup_logger(self.config.get_path("log_path"))
-        
+        log_dir = self.config.get("paths", "log_path", "logs")
+        log_file = os.path.join(log_dir, "detector.log")
+        setup_logger("detector", log_file)
+
         # 从配置加载参数
-        self.theta = self.config.get("analysis.similarity_threshold", 0.1)
-        self.tlsh_threshold = self.config.get("analysis.tlsh_threshold", 30)
-        
+        self.theta = self.config.get("analysis", "similarity_threshold", 0.1)
+        self.tlsh_threshold = self.config.get("analysis", "tlsh_threshold", 30)
+
         # 设置路径
-        self.base_path = self.config.get("paths.base_path")
+        self.base_path = self.config.get("paths", "base_path", "analyse_file")
         self.result_path = os.path.join(self.base_path, "detector")
         self.repo_func_path = os.path.join(self.base_path, "osscollector/repo_functions")
         self.ver_idx_path = os.path.join(self.base_path, "preprocessor/verIDX")
@@ -153,7 +162,7 @@ class Detector:
                 func_count += 1
                 
             result = (file_result, 1, func_count, line_count)
-            self.cache.set(cache_key, result)
+            self.cache.put(cache_key, result)
             return result
             
         except Exception as e:
@@ -417,17 +426,27 @@ class Detector:
                             input_path
                         ))
                         
-            # 并行处理文件
-            input_dict = self.process_files_parallel(cpp_files)
-            
-            # 准备组件处理任务
-            components = [
-                (oss, input_dict, input_repo, self.ave_funcs)
-                for oss in self.component_db
-            ]
-            
-            # 并行处理组件
-            results = self.process_components_parallel(components)
+            # 处理文件（单线程模式避免pickle错误）
+            input_dict = {}
+            for file_path, repo_path in cpp_files:
+                try:
+                    file_result, _, _, _ = self.process_file(file_path, repo_path)
+                    input_dict.update(file_result)
+                except Exception as e:
+                    logger.error(f"处理文件失败 {file_path}: {str(e)}")
+
+            logger.info(f"处理了 {len(cpp_files)} 个文件，提取了 {len(input_dict)} 个函数")
+
+            # 处理组件（单线程模式）
+            results = []
+            for oss in self.component_db:
+                try:
+                    component_info = (oss, input_dict, input_repo, self.ave_funcs)
+                    result = self.process_component(component_info)
+                    if result:
+                        results.append(result)
+                except Exception as e:
+                    logger.error(f"处理组件失败 {oss}: {str(e)}")
             
             # 写入结果
             result_file = os.path.join(self.result_path, f"result_{input_repo}")
@@ -450,15 +469,32 @@ class Detector:
 
 def main():
     """主函数"""
-    if len(sys.argv) < 2:
-        print("Usage: python detector.py <input_path>")
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Re-Centris 代码克隆检测器')
+    parser.add_argument('-c', '--config', help='配置文件路径', default=None)
+    parser.add_argument('-i', '--input', required=True, help='输入代码路径')
+    parser.add_argument('input_path', nargs='?', help='输入代码路径（位置参数）')
+
+    args = parser.parse_args()
+
+    # 确定输入路径
+    input_path = args.input or args.input_path
+    if not input_path:
+        parser.error("必须指定输入路径（使用 -i 或位置参数）")
+
+    if not os.path.exists(input_path):
+        print(f"错误: 输入路径不存在: {input_path}")
         sys.exit(1)
-        
-    input_path = sys.argv[1]
+
     input_repo = os.path.basename(input_path)
-    
-    detector = Detector()
-    detector.detect(input_path, input_repo)
+
+    try:
+        detector = Detector(args.config)
+        detector.detect(input_path, input_repo)
+    except Exception as e:
+        logger.error(f"检测失败: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
