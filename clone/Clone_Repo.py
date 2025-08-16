@@ -64,12 +64,9 @@ def clone_single_repo(repo_info: Tuple[str, str, str], clone_path: str, timeout:
         return True, message
 
     try:
-        # 优化的git clone命令
+        # 完整git clone命令
         cmd = [
             'git', 'clone',
-            '--depth', '1',  # 只克隆最新版本
-            '--single-branch',  # 只克隆默认分支
-            '--no-tags',  # 不克隆标签
             repo_url,
             target_path
         ]
@@ -233,7 +230,7 @@ def main():
                         help='克隆仓库的目标目录 (默认: ./repos)')
     parser.add_argument('-w', '--workers', type=int, default=5,
                         help='并行线程数 (默认: 5)')
-    parser.add_argument('--timeout', type=int, default=300,
+    parser.add_argument('--timeout', type=int, default=3000,
                         help='单个仓库克隆超时时间(秒) (默认: 300)')
     parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                         default='INFO', help='日志级别 (默认: INFO)')
