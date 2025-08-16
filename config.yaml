@@ -5,23 +5,23 @@ paths:
   # 仓库路径
   repo_path: "./repos"
   # 标签日期路径
-  tag_date_path: "./osscollector/repo_date"
+  tag_date_path: "./analyse_file/oss_collector/repo_date"
   # 结果路径
-  result_path: "./osscollector/repo_functions"
+  result_path: "./analyse_file/oss_collector/repo_functions"
   # 日志路径
-  log_path: "./logs"
+  log_path: "./analyse_file/logs"
   # 版本索引路径
-  ver_idx_path: "./preprocessor/verIDX"
+  ver_idx_path: "./analyse_file/preprocessor/verIDX"
   # 初始签名数据库路径
-  initial_db_path: "./preprocessor/initialSigs"
+  initial_db_path: "./analyse_file/preprocessor/initialSigs"
   # 最终组件数据库路径
-  final_db_path: "./preprocessor/componentDB"
+  final_db_path: "./analyse_file/preprocessor/componentDB"
   # 元信息路径
-  meta_path: "./preprocessor/metaInfos"
+  meta_path: "./analyse_file/preprocessor/metaInfos"
   # 权重路径
-  weight_path: "./preprocessor/metaInfos/weights"
+  weight_path: "./analyse_file/preprocessor/metaInfos/weights"
   # 函数日期路径
-  func_date_path: "./preprocessor/funcDate"
+  func_date_path: "./analyse_file/preprocessor/funcDate"
   # 缓存路径
   cache_path: "./cache"
 
@@ -59,7 +59,7 @@ analysis:
 # 外部工具配置
 external_tools:
   # ctags路径
-  ctags_path: "ctags"
+  ctags_path: "/usr/local/bin/ctags"
 
 # 支持的语言配置
 languages:

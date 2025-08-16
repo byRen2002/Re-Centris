@@ -1,0 +1,16 @@
+https://github.com/torvalds/linux.git 
+https://github.com/bminor/binutils-gdb.git
+https://github.com/libexpat/libexpat.git
+https://github.com/FFmpeg/FFmpeg.git
+https://github.com/libexif/libexif.git
+https://github.com/pnggroup/libpng.git
+https://github.com/GNOME/libxml2.git
+https://github.com/GNOME/libxslt.git
+https://github.com/openssl/openssl.git
+https://github.com/OpenVPN/openvpn.git
+https://github.com/mattn/go-sqlite3.git
+https://github.com/the-tcpdump-group/tcpdump.git
+https://github.com/redis/redis.git
+https://github.com/libevent/libevent.git
+https://github.com/libuv/libuv.git
+https://github.com/libjpeg-turbo/libjpeg-turbo.git

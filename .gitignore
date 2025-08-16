@@ -1,0 +1,12 @@
+
+__pycache__/
+
+clone/clone.log
+repos/
+
+
+analyse_file/
+*.log
+
+
+
