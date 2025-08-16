@@ -21,8 +21,16 @@ import datetime
 import time
 import logging
 import traceback
+import sys
+import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Dict, List, Set, Tuple, Any, Optional, Generator
+
+# 添加项目根目录到Python路径
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from core.parallel_manager import ParallelManager
 from core.performance_monitor import PerformanceMonitor
 from core.resource_manager import ResourceManager, safe_open
