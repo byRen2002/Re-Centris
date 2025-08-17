@@ -28,13 +28,7 @@ coverage>=7.3.0
 codecov>=2.1.0
 html-testRunner==1.2.1
 
-# 代码质量
-flake8>=6.1.0
-black>=23.7.0
-isort==4.2.5
-mypy>=1.5.0
-bandit>=1.7.0
-safety>=2.3.0
+
 
 # 文档工具
 sphinx>=7.1.0
